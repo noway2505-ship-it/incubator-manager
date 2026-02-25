@@ -24,34 +24,8 @@ SHEET_ID = "1pm_d9aOPlurnafVU3fmXSR9IUKQhTnm6-Emol_Paevo"
 sheet = client.open_by_key(SHEET_ID).sheet1
 
 # ===============================
-# قراءة البيانات من Google Sheet
+# أنواع الطيور
 # ===============================
-
-data = sheet.get_all_records()
-df = pd.DataFrame(data)
-expected_columns = [
-    "صاحب الدفعة",
-    "النوع",
-    "تاريخ البداية",
-    "تاريخ الفرز",
-    "تاريخ النزول",
-    "تاريخ الفقس"
-    "عدد البيض",
-
-]
-
-# لو الأعمدة مختلفة أو متبدلة نعيد ترتيبها
-df = df.reindex(columns=expected_columns)
-if df.empty:
-    df = pd.DataFrame(columns=[
-        "صاحب الدفعة",
-        "النوع",
-        "عدد البيض",
-        "تاريخ البداية",
-        "تاريخ الفرز",
-        "تاريخ النزول",
-        "تاريخ الفقس"
-    ])
 
 birds = {
     "فراخ": (18, 3),
@@ -68,9 +42,30 @@ birds = {
 st.set_page_config(page_title="Incubator Manager", layout="wide")
 st.title("🐣 نظام إدارة مكنة التفريخ")
 
-# =========================
+# ===============================
+# قراءة البيانات من الشيت
+# ===============================
+
+data = sheet.get_all_records()
+df = pd.DataFrame(data)
+
+# ضمان ترتيب الأعمدة الصحيح
+expected_columns = [
+    "صاحب الدفعة",
+    "النوع",
+    "تاريخ البداية",
+    "تاريخ الفرز",
+    "تاريخ النزول",
+    "تاريخ الفقس",
+    "عدد البيض",
+]
+
+df = df.reindex(columns=expected_columns)
+
+# ===============================
 # إضافة دفعة جديدة
-# =========================
+# ===============================
+
 with st.form("add_batch"):
     col1, col2, col3, col4 = st.columns(4)
 
@@ -81,32 +76,33 @@ with st.form("add_batch"):
 
     submit = st.form_submit_button("➕ إضافة دفعة")
 
-if submit:
-    if owner.strip() == "":
-        st.error("من فضلك اكتب اسم صاحب الدفعة")
-    else:
-        incub_days, transfer_days = birds[bird]
+    if submit:
+        if owner.strip() == "":
+            st.error("من فضلك اكتب اسم صاحب الدفعة")
+        else:
+            incub_days, transfer_days = birds[bird]
 
-        sort_date = start_date + timedelta(days=10)
-        transfer_date = start_date + timedelta(days=incub_days)
-        hatch_date = transfer_date + timedelta(days=transfer_days)
+            sort_date = start_date + timedelta(days=10)
+            transfer_date = start_date + timedelta(days=incub_days)
+            hatch_date = transfer_date + timedelta(days=transfer_days)
 
-        sheet.append_row([
-            owner,
-            bird,
-            str(start_date),
-            str(sort_date),
-            str(transfer_date),
-            str(hatch_date),
-            eggs,
-        ])
+            sheet.append_row([
+                owner,
+                bird,
+                str(start_date),
+                str(sort_date),
+                str(transfer_date),
+                str(hatch_date),
+                eggs,
+            ])
 
-        st.success("تمت إضافة الدفعة بنجاح")
+            st.success("تمت إضافة الدفعة بنجاح")
             st.rerun()
 
-# =========================
+# ===============================
 # عرض الدفعات
-# =========================
+# ===============================
+
 st.subheader("📋 الدفعات الحالية")
 
 if not df.empty:
@@ -130,22 +126,22 @@ if not df.empty:
 
     st.dataframe(df_display, use_container_width=True)
 
-    # =========================
-    # إحصائيات
-    # =========================
+    # ===============================
+    # الإحصائيات
+    # ===============================
+
     st.markdown("### 📊 الإحصائيات")
 
     total_eggs = pd.to_numeric(df_display["عدد البيض"], errors="coerce").sum()
-    st.write(f"🔢 إجمالي عدد البيض الكلي: **{total_eggs}**")
+    st.write(f"🔢 إجمالي عدد البيض الكلي: **{int(total_eggs)}**")
 
-    eggs_per_owner = df_display.groupby("صاحب الدفعة")["عدد البيض"].sum()
+    eggs_per_owner = (
+        df_display.groupby("صاحب الدفعة")["عدد البيض"]
+        .apply(lambda x: pd.to_numeric(x, errors="coerce").sum())
+    )
+
     st.write("👤 إجمالي البيض لكل صاحب دفعة:")
     st.dataframe(eggs_per_owner)
 
 else:
     st.info("لا يوجد دفعات حالياً")
-
-
-
-
-
