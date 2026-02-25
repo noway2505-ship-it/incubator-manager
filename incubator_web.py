@@ -1,8 +1,10 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
 
 # ===============================
 # Google Sheets Connection
@@ -20,17 +22,11 @@ creds = ServiceAccountCredentials.from_json_keyfile_dict(
 client = gspread.authorize(creds)
 
 SHEET_ID = "1pm_d9aOPlurnafVU3fmXSR9IUKQhTnm6-Emol_Paevo"
-
 sheet = client.open_by_key(SHEET_ID).sheet1
 
-
 # ===============================
-# Google Calendar Connection (إضافة فقط)
+# Google Calendar Connection
 # ===============================
-
-from google.oauth2 import service_account
-from googleapiclient.discovery import build
-from datetime import time
 
 CALENDAR_SCOPES = ['https://www.googleapis.com/auth/calendar']
 
@@ -41,8 +37,10 @@ calendar_credentials = service_account.Credentials.from_service_account_info(
 
 calendar_service = build('calendar', 'v3', credentials=calendar_credentials)
 
-def create_calendar_event(title, event_date):
+# ⚠️ حط هنا Calendar ID الحقيقي
+CALENDAR_ID = "monaibraheemmohamed@gmail.com"
 
+def create_calendar_event(title, event_date):
     start_time = datetime.combine(event_date, time(9, 0))
     end_time = start_time + timedelta(hours=1)
 
@@ -65,10 +63,9 @@ def create_calendar_event(title, event_date):
     }
 
     calendar_service.events().insert(
-        calendarId='primary',
+        calendarId=CALENDAR_ID,
         body=event
     ).execute()
-
 
 # ===============================
 # أنواع الطيور
@@ -166,10 +163,14 @@ if not df.empty:
         if today == transfer_date:
             df_display.loc[i, "الحالة"] = "🔴 انزل للتحضين"
 
-            create_calendar_event(
-                f"نزول دفعة - {df_display.loc[i, 'صاحب الدفعة']}",
-                transfer_date
-            )
+            # 🔒 حماية من سقوط التطبيق
+            try:
+                create_calendar_event(
+                    f"نزول دفعة - {df_display.loc[i, 'صاحب الدفعة']}",
+                    transfer_date
+                )
+            except Exception:
+                pass
 
         elif 0 < days_to_transfer <= 2:
             df_display.loc[i, "الحالة"] = "🟡 قرب النزول"
