@@ -81,7 +81,7 @@ with st.form("add_batch"):
 
     submit = st.form_submit_button("➕ إضافة دفعة")
 
- if submit:
+if submit:
     if owner.strip() == "":
         st.error("من فضلك اكتب اسم صاحب الدفعة")
     else:
@@ -144,6 +144,7 @@ if not df.empty:
 
 else:
     st.info("لا يوجد دفعات حالياً")
+
 
 
 
