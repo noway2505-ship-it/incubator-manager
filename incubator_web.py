@@ -82,28 +82,26 @@ with st.form("add_batch"):
     submit = st.form_submit_button("➕ إضافة دفعة")
 
     if submit:
-        if owner.strip() == "":
-            st.error("من فضلك اكتب اسم صاحب الدفعة")
-        else:
-            incub_days, transfer_days = birds[bird]
+    if owner.strip() == "":
+        st.error("من فضلك اكتب اسم صاحب الدفعة")
+    else:
+        incub_days, transfer_days = birds[bird]
 
-            sort_date = start_date + timedelta(days=10)
-            transfer_date = start_date + timedelta(days=incub_days)
-            hatch_date = transfer_date + timedelta(days=transfer_days)
+        sort_date = start_date + timedelta(days=10)
+        transfer_date = start_date + timedelta(days=incub_days)
+        hatch_date = transfer_date + timedelta(days=transfer_days)
 
-            new_row = [
-                owner,
-                bird,
-                eggs,
-                start_date.strftime("%Y-%m-%d"),
-                sort_date.strftime("%Y-%m-%d"),
-                transfer_date.strftime("%Y-%m-%d"),
-                hatch_date.strftime("%Y-%m-%d"),
-            ]
+        sheet.append_row([
+            owner,
+            bird,
+            str(start_date),
+            str(sort_date),
+            str(transfer_date),
+            str(hatch_date),
+            eggs,
+        ])
 
-            sheet.append_row(new_row)
-
-            st.success("تمت إضافة الدفعة بنجاح")
+        st.success("تمت إضافة الدفعة بنجاح")
             st.rerun()
 
 # =========================
@@ -146,5 +144,6 @@ if not df.empty:
 
 else:
     st.info("لا يوجد دفعات حالياً")
+
 
 
