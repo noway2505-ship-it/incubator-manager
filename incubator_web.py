@@ -29,7 +29,18 @@ sheet = client.open_by_key(SHEET_ID).sheet1
 
 data = sheet.get_all_records()
 df = pd.DataFrame(data)
+expected_columns = [
+    "صاحب الدفعة",
+    "النوع",
+    "عدد البيض",
+    "تاريخ البداية",
+    "تاريخ الفرز",
+    "تاريخ النزول",
+    "تاريخ الفقس"
+]
 
+# لو الأعمدة مختلفة أو متبدلة نعيد ترتيبها
+df = df.reindex(columns=expected_columns)
 if df.empty:
     df = pd.DataFrame(columns=[
         "صاحب الدفعة",
@@ -125,7 +136,7 @@ if not df.empty:
     # =========================
     st.markdown("### 📊 الإحصائيات")
 
-    total_eggs = df_display["عدد البيض"].sum()
+    total_eggs = pd.to_numeric(df_display["عدد البيض"], errors="coerce").sum()
     st.write(f"🔢 إجمالي عدد البيض الكلي: **{total_eggs}**")
 
     eggs_per_owner = df_display.groupby("صاحب الدفعة")["عدد البيض"].sum()
@@ -134,3 +145,4 @@ if not df.empty:
 
 else:
     st.info("لا يوجد دفعات حالياً")
+
