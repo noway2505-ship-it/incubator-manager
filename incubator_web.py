@@ -23,6 +23,53 @@ SHEET_ID = "1pm_d9aOPlurnafVU3fmXSR9IUKQhTnm6-Emol_Paevo"
 
 sheet = client.open_by_key(SHEET_ID).sheet1
 
+
+# ===============================
+# Google Calendar Connection (إضافة فقط)
+# ===============================
+
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from datetime import time
+
+CALENDAR_SCOPES = ['https://www.googleapis.com/auth/calendar']
+
+calendar_credentials = service_account.Credentials.from_service_account_info(
+    st.secrets["gcp_service_account"],
+    scopes=CALENDAR_SCOPES,
+)
+
+calendar_service = build('calendar', 'v3', credentials=calendar_credentials)
+
+def create_calendar_event(title, event_date):
+
+    start_time = datetime.combine(event_date, time(9, 0))
+    end_time = start_time + timedelta(hours=1)
+
+    event = {
+        'summary': title,
+        'start': {
+            'dateTime': start_time.isoformat(),
+            'timeZone': 'Africa/Cairo',
+        },
+        'end': {
+            'dateTime': end_time.isoformat(),
+            'timeZone': 'Africa/Cairo',
+        },
+        'reminders': {
+            'useDefault': False,
+            'overrides': [
+                {'method': 'popup', 'minutes': 60},
+            ],
+        },
+    }
+
+    calendar_service.events().insert(
+        calendarId='primary',
+        body=event
+    ).execute()
+
+
 # ===============================
 # أنواع الطيور
 # ===============================
@@ -49,7 +96,6 @@ st.title("🐣 نظام إدارة مكنة التفريخ")
 data = sheet.get_all_records()
 df = pd.DataFrame(data)
 
-# ضمان ترتيب الأعمدة الصحيح
 expected_columns = [
     "صاحب الدفعة",
     "النوع",
@@ -119,16 +165,18 @@ if not df.empty:
 
         if today == transfer_date:
             df_display.loc[i, "الحالة"] = "🔴 انزل للتحضين"
+
+            create_calendar_event(
+                f"نزول دفعة - {df_display.loc[i, 'صاحب الدفعة']}",
+                transfer_date
+            )
+
         elif 0 < days_to_transfer <= 2:
             df_display.loc[i, "الحالة"] = "🟡 قرب النزول"
         elif today == sort_date:
             df_display.loc[i, "الحالة"] = "🟡 فرز اليوم"
 
     st.dataframe(df_display, use_container_width=True)
-
-    # ===============================
-    # الإحصائيات
-    # ===============================
 
     st.markdown("### 📊 الإحصائيات")
 
