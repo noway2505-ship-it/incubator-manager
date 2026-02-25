@@ -1,9 +1,45 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
-import os
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 
-FILE_NAME = "batches_web.csv"
+# ===============================
+# Google Sheets Connection
+# ===============================
+
+SCOPE = [
+    "https://spreadsheets.google.com/feeds",
+    "https://www.googleapis.com/auth/drive",
+]
+
+creds = ServiceAccountCredentials.from_json_keyfile_dict(
+    st.secrets["gcp_service_account"], SCOPE
+)
+
+client = gspread.authorize(creds)
+
+SHEET_ID = "1pm_d9aOPlurnafVU3fmXSR9IUKQhTnm6-Emol_Paevo"
+
+sheet = client.open_by_key(SHEET_ID).sheet1
+
+# ===============================
+# قراءة البيانات من Google Sheet
+# ===============================
+
+data = sheet.get_all_records()
+df = pd.DataFrame(data)
+
+if df.empty:
+    df = pd.DataFrame(columns=[
+        "صاحب الدفعة",
+        "النوع",
+        "عدد البيض",
+        "تاريخ البداية",
+        "تاريخ الفرز",
+        "تاريخ النزول",
+        "تاريخ الفقس"
+    ])
 
 birds = {
     "فراخ": (18, 3),
@@ -19,21 +55,6 @@ birds = {
 
 st.set_page_config(page_title="Incubator Manager", layout="wide")
 st.title("🐣 نظام إدارة مكنة التفريخ")
-
-# إنشاء الملف لو مش موجود
-if not os.path.exists(FILE_NAME):
-    df_init = pd.DataFrame(columns=[
-        "صاحب الدفعة",
-        "النوع",
-        "عدد البيض",
-        "تاريخ البداية",
-        "تاريخ الفرز",
-        "تاريخ النزول",
-        "تاريخ الفقس"
-    ])
-    df_init.to_csv(FILE_NAME, index=False)
-
-df = pd.read_csv(FILE_NAME)
 
 # =========================
 # إضافة دفعة جديدة
@@ -58,19 +79,20 @@ with st.form("add_batch"):
             transfer_date = start_date + timedelta(days=incub_days)
             hatch_date = transfer_date + timedelta(days=transfer_days)
 
-            new_row = {
-                "صاحب الدفعة": owner,
-                "النوع": bird,
-                "عدد البيض": eggs,
-                "تاريخ البداية": start_date,
-                "تاريخ الفرز": sort_date,
-                "تاريخ النزول": transfer_date,
-                "تاريخ الفقس": hatch_date,
-            }
+            new_row = [
+                owner,
+                bird,
+                eggs,
+                start_date.strftime("%Y-%m-%d"),
+                sort_date.strftime("%Y-%m-%d"),
+                transfer_date.strftime("%Y-%m-%d"),
+                hatch_date.strftime("%Y-%m-%d"),
+            ]
 
-            df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-            df.to_csv(FILE_NAME, index=False)
+            sheet.append_row(new_row)
+
             st.success("تمت إضافة الدفعة بنجاح")
+            st.rerun()
 
 # =========================
 # عرض الدفعات
